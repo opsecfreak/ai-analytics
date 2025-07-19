@@ -6,10 +6,11 @@ import { loginSchema, passkeySchema } from "@/lib/validators";
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [passkey, setPasskey] = useState("");
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState<string>("");
   const [needsPasskey, setNeedsPasskey] = useState(false);
   const [error, setError] = useState("");
 
+  // Helper to log events, ignoring any errors to avoid UX issues
   const logEvent = async (action: string, details?: Record<string, any>) => {
     try {
       await fetch("/api/log", {
@@ -18,13 +19,14 @@ export default function LoginPage() {
         body: JSON.stringify({ action, ...details }),
       });
     } catch {
-      // silently fail logging errors
+      // silently ignore
     }
   };
 
   const handleLogin = async () => {
     setError("");
-    // Validate email with zod
+
+    // Validate email with zod schema
     const parsed = loginSchema.safeParse({ email });
     if (!parsed.success) {
       setError(parsed.error.errors[0]?.message || "Invalid email");
@@ -42,23 +44,23 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError(data.error || "Login failed");
+        await logEvent("login_attempt", { email, success: false });
         return;
       }
 
       setToken(data.token);
       setNeedsPasskey(!data.hasPasskey);
-
-      // Log login attempt
-      logEvent("login_attempt", { email, success: true });
+      await logEvent("login_attempt", { email, success: true });
     } catch {
       setError("Network error");
-      logEvent("login_attempt", { email, success: false });
+      await logEvent("login_attempt", { email, success: false });
     }
   };
 
   const handleSetPasskey = async () => {
     setError("");
-    // Validate passkey with zod
+
+    // Validate passkey with zod schema
     const parsed = passkeySchema.safeParse({ passkey });
     if (!parsed.success) {
       setError(parsed.error.errors[0]?.message || "Invalid passkey");
@@ -78,17 +80,16 @@ export default function LoginPage() {
       if (!res.ok) {
         const err = await res.json();
         setError(err.error || "Failed to set passkey");
+        await logEvent("passkey_created_failed", { email });
         return;
       }
 
       alert("Passkey set! You're logged in.");
       setNeedsPasskey(false);
-
-      // Log passkey creation
-      logEvent("passkey_created", { email });
+      await logEvent("passkey_created", { email });
     } catch {
       setError("Network error");
-      logEvent("passkey_created_failed", { email });
+      await logEvent("passkey_created_failed", { email });
     }
   };
 

@@ -1,75 +1,33 @@
-"use client";
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { verifyToken, signToken } from "@/lib/auth"; // Your JWT helpers
 
-import { useState } from "react";
+export async function POST(req: NextRequest) {
+  try {
+    const { email } = await req.json();
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [passkey, setPasskey] = useState("");
-  const [token, setToken] = useState("");
-  const [needsPasskey, setNeedsPasskey] = useState(false);
-
-  const handleLogin = async () => {
-    const res = await fetch("/api/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-
-    const data = await res.json();
-    if (res.ok) {
-      setToken(data.token);
-      setNeedsPasskey(!data.hasPasskey);
-    } else {
-      alert(data.error);
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
-  };
 
-  const handleSetPasskey = async () => {
-    const res = await fetch("/api/set-passkey", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ passkey }),
-    });
+    // Find user or create if not exist (example)
+    let user = await prisma.user.findUnique({ where: { email } });
 
-    if (res.ok) {
-      alert("Passkey set! You're logged in.");
-      // Optionally redirect to dashboard
-    } else {
-      const err = await res.json();
-      alert(err.error);
+    if (!user) {
+      user = await prisma.user.create({
+        data: { email },
+      });
     }
-  };
 
-  return (
-    <div className="p-8 max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Login</h2>
-      <input
-        placeholder="Enter email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full p-2 border mb-4"
-      />
-      <button onClick={handleLogin} className="w-full bg-blue-600 text-white p-2 rounded mb-4">
-        Send Login
-      </button>
+    // Create a token for this user (adjust your token signing method)
+    const token = signToken(user.id);
 
-      {needsPasskey && (
-        <>
-          <input
-            placeholder="Create passkey"
-            value={passkey}
-            type="password"
-            onChange={(e) => setPasskey(e.target.value)}
-            className="w-full p-2 border mb-4"
-          />
-          <button onClick={handleSetPasskey} className="w-full bg-green-600 text-white p-2 rounded">
-            Set Passkey
-          </button>
-        </>
-      )}
-    </div>
-  );
+    // Check if user has passkey set
+    const hasPasskey = Boolean(user.passkey);
+
+    return NextResponse.json({ token, hasPasskey });
+  } catch (error) {
+    console.error("Login error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

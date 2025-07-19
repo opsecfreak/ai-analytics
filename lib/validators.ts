@@ -1,16 +1,16 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
+  email: z.string().email("Please enter a valid email"),
 });
 
 export const passkeySchema = z.object({
-  passkey: z.string().min(6, { message: "Passkey must be at least 6 characters" }),
+  passkey: z.string().min(6, "Passkey must be at least 6 characters"),
 });
-export const userSchema = z.object({
-  email: z.string().email({ message: "Invalid email address" }),
-  displayName: z.string().min(1, { message: "Display name is required" }).optional(),
-  phoneNumber: z.string().min(7, { message: "Phone number must be at least 7 characters" }).max(20, { message: "Phone number cannot exceed 20 characters" }).optional(),
-  bio: z.string().max(500, { message: "Bio cannot exceed 500 characters" }).optional(),
-  profilePicture: z.string().url({ message: "Invalid URL for profile picture" }).optional(),
+export const profileUpdateSchema = z.object({
+  displayName: z.string().min(1).optional(),
+  phoneNumber: z.string().min(7).max(20).optional(),
+  bio: z.string().max(500).optional(),
+  profilePicture: z.string().url().optional(),
+  // Add more fields as you want to allow users to update here
 });

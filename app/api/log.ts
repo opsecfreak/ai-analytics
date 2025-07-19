@@ -1,27 +1,28 @@
-// app/api/log.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
   try {
-    const { sessionId, url, timeSpent, referrer } = await req.json();
+    const { action, ...details } = await req.json();
 
-    if (!sessionId || !url || !timeSpent) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!action) {
+      return NextResponse.json({ error: "Action is required" }, { status: 400 });
     }
 
-    const pageVisit = await prisma.pageVisit.create({
+    // Save audit log or event to DB
+    await prisma.auditLog.create({
       data: {
-        sessionId,
-        url,
-        timeSpent,
-        referrer,
+        id: crypto.randomUUID(),
+        action,
+        newValue: JSON.stringify(details),
+        createdAt: new Date(),
+        // optionally: userId, ipAddress, userAgent from headers if available
       },
     });
 
-    return NextResponse.json(pageVisit);
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Log API error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("Log error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
