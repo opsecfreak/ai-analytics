@@ -31,9 +31,9 @@
     "url": "git+https://github.com/opsecfreak/ai-analytics.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "opsecfreak",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "bugs": {
     "url": "https://github.com/opsecfreak/ai-analytics/issues"
   },
