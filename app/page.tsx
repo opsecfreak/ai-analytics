@@ -1,62 +1,27 @@
-// app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 
-interface UserInfo {
+interface User {
   id: string;
   email?: string;
 }
 
 export default function HomePage() {
   const [email, setEmail] = useState('');
-  const [users, setUsers] = useState<UserInfo[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [token, setToken] = useState('');
   const [error, setError] = useState('');
 
-  // Fetch list of users from the database
+  // Fetch users from API
   const fetchUsers = async () => {
-    setError('');
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/user');
       if (!res.ok) throw new Error('Failed to fetch users');
-      setUsers(await res.json());
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  // Create a new user record
-  const createUser = async () => {
-    setError('');
-    try {
-      const res = await fetch('/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) throw new Error('Failed to create user');
-      setEmail('');
-      fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  // Generate a JWT for the given email
-  const fetchToken = async () => {
-    setError('');
-    try {
-      const res = await fetch('/api/user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) throw new Error('Failed to fetch token');
       const data = await res.json();
-      setToken(data.token);
+      setUsers(data);
     } catch (err: any) {
-      setError(err.message || 'Error');
+      setError(err.message || 'Error fetching users');
     }
   };
 
@@ -64,58 +29,76 @@ export default function HomePage() {
     fetchUsers();
   }, []);
 
+  // Create user and get token
+  const createUser = async () => {
+    if (!email.trim()) {
+      setError('Please enter a valid email');
+      return;
+    }
+
+    setError('');
+    setToken('');
+    try {
+      const res = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error || 'Failed to create user');
+        return;
+      }
+
+      const { user, token } = await res.json();
+      setUsers((prev) => [...prev, user]);
+      setToken(token);
+      setEmail('');
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    }
+  };
+
   return (
-    <div className="w-full max-w-xl bg-background bg-opacity-90 p-6 rounded-xl shadow-lg">
-      <h1 className="text-2xl font-semibold mb-4 text-center">AI-ANALYTICS</h1>
+    <div className="w-full max-w-xl p-6 bg-background bg-opacity-90 rounded-xl shadow-lg mx-auto mt-10">
+      <h1 className="text-center text-3xl font-bold mb-6">AI-ANALYTICS</h1>
 
       <input
         type="email"
         placeholder="Enter user email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full px-4 py-2 mb-4 border rounded-md bg-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className="w-full px-4 py-2 rounded border border-gray-300 mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
       />
 
-      <div className="flex gap-2 mb-4 flex-wrap justify-center">
-        <button
-          onClick={createUser}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          Create User
-        </button>
-        <button
-          onClick={fetchUsers}
-          className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-        >
-          View Users
-        </button>
-        <button
-          onClick={fetchToken}
-          className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-        >
-          Generate JWT
-        </button>
-      </div>
+      <button
+        onClick={createUser}
+        className="w-full py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition"
+      >
+        Create User
+      </button>
+
+      {error && <p className="mt-3 text-red-500">{error}</p>}
 
       {token && (
-        <div className="mb-4 break-all">
-          <strong>JWT:</strong> {token}
+        <div className="mt-4 p-3 bg-green-100 text-green-800 rounded break-words">
+          <strong>One-Time JWT Token:</strong> {token}
         </div>
       )}
-      {error && <div className="mb-4 text-red-500">{error}</div>}
 
-      <table className="w-full table-auto border-collapse">
+      <table className="w-full mt-8 border-collapse border border-gray-300">
         <thead>
           <tr>
-            <th className="border px-2 py-1">ID</th>
-            <th className="border px-2 py-1">Email</th>
+            <th className="border border-gray-300 px-3 py-1">ID</th>
+            <th className="border border-gray-300 px-3 py-1">Email</th>
           </tr>
         </thead>
         <tbody>
-          {users.map((user) => (
-            <tr key={user.id}>
-              <td className="border px-2 py-1 text-sm">{user.id}</td>
-              <td className="border px-2 py-1 text-sm">{user.email || '-'}</td>
+          {users.map(({ id, email }) => (
+            <tr key={id}>
+              <td className="border border-gray-300 px-3 py-1 text-sm break-all">{id}</td>
+              <td className="border border-gray-300 px-3 py-1 text-sm">{email || '-'}</td>
             </tr>
           ))}
         </tbody>
