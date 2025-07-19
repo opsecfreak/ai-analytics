@@ -91,12 +91,24 @@ export default function HomePage() {
           </tr>
         </thead>
         <tbody>
-          {users.map(({ id, email }) => (
-            <tr key={id} className="hover:bg-gray-100 dark:hover:bg-gray-800">
-              <td className="border border-gray-300 dark:border-gray-700 px-3 py-1 text-sm break-words">{id}</td>
-              <td className="border border-gray-300 dark:border-gray-700 px-3 py-1 text-sm">{email || '-'}</td>
+          {Array.isArray(users) && users.length > 0 ? (
+            users.map((user) => (
+              <tr key={user?.id ?? Math.random()} className="hover:bg-gray-100 dark:hover:bg-gray-800">
+                <td className="border border-gray-300 dark:border-gray-700 px-3 py-1 text-sm break-words">
+                  {user?.id ?? '-'}
+                </td>
+                <td className="border border-gray-300 dark:border-gray-700 px-3 py-1 text-sm">
+                  {user?.email ?? '-'}
+                </td>
+              </tr>
+            ))
+          ) : (
+            <tr>
+              <td colSpan={2} className="text-center py-4 text-gray-500">
+                No users found.
+              </td>
             </tr>
-          ))}
+          )}
         </tbody>
       </table>
     </div>
