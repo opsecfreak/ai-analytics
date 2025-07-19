@@ -11,15 +11,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
-    // 1. Create user in DB
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      return NextResponse.json({ error: "User with this email already exists" }, { status: 409 });
+    }
+
+    // Create user
     const user = await prisma.user.create({
       data: { email },
     });
 
-    // 2. Generate a one-time JWT token for this user
+    // Generate JWT token and store in UserToken table
     const token = generateToken({ userId: user.id });
 
-    // 3. Store the token in UserToken table with 7 days expiry
     await prisma.userToken.create({
       data: {
         token,
@@ -28,13 +36,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 4. Return user info & token to frontend
     return NextResponse.json({ user, token }, { status: 201 });
   } catch (error) {
     console.error("User creation error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
+
 
 // GET method to fetch all users and their emails
 export async function GET() {
