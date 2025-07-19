@@ -8,60 +8,60 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(uuid())
-  email         String?    @unique
-  createdAt     DateTime   @default(now())
+  id            String         @id @default(uuid())
+  email         String?        @unique
+  createdAt     DateTime       @default(now())
   sessions      Session[]
   events        Event[]
   conversations Conversation[]
 }
 
 model Session {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
+  id        String      @id @default(uuid())
+  user      User        @relation(fields: [userId], references: [id])
   userId    String
   ipAddress String?
   userAgent String?
-  startedAt DateTime @default(now())
+  startedAt DateTime    @default(now())
   endedAt   DateTime?
   pages     PageVisit[]
 }
 
 model PageVisit {
-  id         String   @id @default(uuid())
-  session    Session  @relation(fields: [sessionId], references: [id])
-  sessionId  String
-  url        String
-  referrer   String?
-  timeSpent  Int      // time in milliseconds
-  visitedAt  DateTime @default(now())
+  id        String   @id @default(uuid())
+  session   Session  @relation(fields: [sessionId], references: [id])
+  sessionId String
+  url       String
+  referrer  String?
+  timeSpent Int // time in milliseconds
+  visitedAt DateTime @default(now())
 }
 
 model Event {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String
-  type      String   // e.g., "click", "form_submit", "scroll", etc.
-  target    String?  // e.g., "button#submit", "input#email"
-  metadata  Json?
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  type       String // e.g., "click", "form_submit", "scroll", etc.
+  target     String? // e.g., "button#submit", "input#email"
+  metadata   Json?
   occurredAt DateTime @default(now())
 }
 
 model Conversation {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id])
   userId    String
-  startedAt DateTime @default(now())
+  startedAt DateTime  @default(now())
   messages  Message[]
 }
 
 model Message {
-  id             String   @id @default(uuid())
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  id             String        @id @default(uuid())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id])
   conversationId String
   sender         MessageSender
   content        String
-  sentAt         DateTime @default(now())
+  sentAt         DateTime      @default(now())
 }
 
 enum MessageSender {
