@@ -7,35 +7,78 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// User model
+// Main User model
 model User {
-  id        String    @id @default(uuid())
-  email     String    @unique
-  createdAt DateTime  @default(now())
+  id             String    @id @default(uuid())
+  email          String    @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  sessions  Session[]
+  // Optional Profile Info
+  phoneNumber    String?
+  displayName    String?
+  bio            String?
+  profilePicture String?
+
+  // Authentication
+  passkey        String?   // Hashed password/passkey
+  lastLoginAt    DateTime?
+  userAgent      String?
+  ipAddress      String?
+
+  // System Fields
+  isActive       Boolean   @default(true)
+  role           String    @default("user") // e.g., "admin", "user", "moderator"
+
+  sessions       Session[]
+  UserToken      UserToken[]
+  auditLogs      AuditLog[] // Track all user-level changes
 }
 
-// User session model
+// Session model
 model Session {
-  id        String    @id @default(uuid())
-  user      User      @relation(fields: [userId], references: [id])
-  userId    String
-  ipAddress String?
-  userAgent String?
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
+  id         String    @id @default(uuid())
+  user       User      @relation(fields: [userId], references: [id])
+  userId     String
+  ipAddress  String?
+  userAgent  String?
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
 
   pageVisits PageVisit[]
 }
 
-// Tracks individual page visits per session
+// Page visit tracking
 model PageVisit {
   id        String   @id @default(uuid())
   session   Session  @relation(fields: [sessionId], references: [id])
   sessionId String
   url       String
   referrer  String?
-  timeSpent Int      // milliseconds spent on page
+  timeSpent Int      // milliseconds
   visitedAt DateTime @default(now())
+}
+
+// JWT Token storage
+model UserToken {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  token     String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+// Audit log model to track changes
+model AuditLog {
+  id         String   @id @default(uuid())
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  action     String   // e.g., "update_profile", "login", "create_user"
+  field      String?  // Optional: field changed
+  oldValue   String?  // Optional: previous value
+  newValue   String?  // Optional: new value
+  createdAt  DateTime @default(now())
+  ipAddress  String?
+  userAgent  String?
 }

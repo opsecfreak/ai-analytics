@@ -1,15 +1,27 @@
-import { PrismaClient } from '@prisma/client';
+// app/api/log.ts
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 
-const prisma = new PrismaClient();
+export async function POST(req: NextRequest) {
+  try {
+    const { sessionId, url, timeSpent, referrer } = await req.json();
 
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { page, timeSpent } = req.body;
-    const result = await prisma.userSession.create({
-      data: { page, timeSpent }
+    if (!sessionId || !url || !timeSpent) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const pageVisit = await prisma.pageVisit.create({
+      data: {
+        sessionId,
+        url,
+        timeSpent,
+        referrer,
+      },
     });
-    return res.status(200).json(result);
-  } else {
-    return res.status(405).json({ error: "Method not allowed" });
+
+    return NextResponse.json(pageVisit);
+  } catch (error) {
+    console.error("Log API error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

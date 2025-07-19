@@ -5,37 +5,37 @@ import { useState, useEffect } from 'react';
 interface User {
   id: string;
   email?: string;
+  createdAt: string;
 }
 
-export default function HomePage() {
+export default function UserAdminPanel() {
   const [email, setEmail] = useState('');
   const [users, setUsers] = useState<User[]>([]);
-  const [token, setToken] = useState('');
   const [error, setError] = useState('');
 
-  // Fetch users on mount
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  async function fetchUsers() {
+  // Fetch users
+  const fetchUsers = async () => {
     try {
       const res = await fetch('/api/user');
       if (!res.ok) throw new Error('Failed to fetch users');
-      const data = await res.json();
+      const data: User[] = await res.json();
       setUsers(data);
     } catch (err: any) {
       setError(err.message || 'Error fetching users');
     }
-  }
+  };
 
-  async function createUser() {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  // Create new user
+  const createUser = async () => {
     if (!email.trim()) {
       setError('Please enter a valid email');
       return;
     }
     setError('');
-    setToken('');
     try {
       const res = await fetch('/api/user', {
         method: 'POST',
@@ -47,67 +47,59 @@ export default function HomePage() {
         setError(err.error || 'Failed to create user');
         return;
       }
-      const { user, token } = await res.json();
-      setUsers((prev) => [...prev, user]);
-      setToken(token);
+      const { user } = await res.json();
+      setUsers((prev) => [user, ...prev]);
       setEmail('');
     } catch (err: any) {
       setError(err.message || 'An error occurred');
     }
-  }
+  };
 
   return (
-    <div className="w-full max-w-xl mx-auto mt-10 p-6 rounded-xl bg-[var(--background)] bg-opacity-90 shadow-lg">
-      <h1 className="text-center text-3xl font-bold mb-6 text-[var(--foreground)]">AI-ANALYTICS</h1>
+    <div className="w-full max-w-3xl p-8 bg-background bg-opacity-90 rounded-xl shadow-lg mx-auto mt-12 text-foreground">
+      <h1 className="text-center text-4xl font-bold mb-8">User Administrator Panel</h1>
 
-      <input
-        type="email"
-        placeholder="Enter user email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        className="w-full mb-4 px-4 py-2 rounded border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-[var(--background)] text-[var(--foreground)]"
-      />
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <input
+          type="email"
+          placeholder="Enter user email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="flex-grow px-4 py-2 rounded border border-gray-500 bg-transparent text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        <button
+          onClick={createUser}
+          className="px-6 py-2 bg-indigo-600 rounded text-white hover:bg-indigo-700 transition"
+        >
+          Create User
+        </button>
+      </div>
 
-      <button
-        onClick={createUser}
-        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition"
-      >
-        Create User
-      </button>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      {error && <p className="mt-3 text-red-500">{error}</p>}
-
-      {token && (
-        <div className="mt-4 p-3 rounded bg-green-100 text-green-800 break-words dark:bg-green-900 dark:text-green-300">
-          <strong>One-Time JWT Token:</strong> {token}
-        </div>
-      )}
-
-      <table className="w-full mt-8 border-collapse border border-gray-300 dark:border-gray-700 text-[var(--foreground)]">
+      <table className="w-full border-collapse border border-gray-600 text-sm">
         <thead>
           <tr>
-            <th className="border border-gray-300 dark:border-gray-700 px-3 py-1">ID</th>
-            <th className="border border-gray-300 dark:border-gray-700 px-3 py-1">Email</th>
+            <th className="border border-gray-600 px-3 py-2 text-left">ID</th>
+            <th className="border border-gray-600 px-3 py-2 text-left">Email</th>
+            <th className="border border-gray-600 px-3 py-2 text-left">Created At</th>
           </tr>
         </thead>
         <tbody>
-          {Array.isArray(users) && users.length > 0 ? (
-            users.map((user) => (
-              <tr key={user?.id ?? Math.random()} className="hover:bg-gray-100 dark:hover:bg-gray-800">
-                <td className="border border-gray-300 dark:border-gray-700 px-3 py-1 text-sm break-words">
-                  {user?.id ?? '-'}
-                </td>
-                <td className="border border-gray-300 dark:border-gray-700 px-3 py-1 text-sm">
-                  {user?.email ?? '-'}
-                </td>
-              </tr>
-            ))
-          ) : (
+          {users.length === 0 ? (
             <tr>
-              <td colSpan={2} className="text-center py-4 text-gray-500">
+              <td colSpan={3} className="text-center py-4 text-gray-500">
                 No users found.
               </td>
             </tr>
+          ) : (
+            users.map(({ id, email, createdAt }) => (
+              <tr key={id}>
+                <td className="border border-gray-600 px-3 py-2 break-all">{id}</td>
+                <td className="border border-gray-600 px-3 py-2">{email || '-'}</td>
+                <td className="border border-gray-600 px-3 py-2">{new Date(createdAt).toLocaleString()}</td>
+              </tr>
+            ))
           )}
         </tbody>
       </table>
