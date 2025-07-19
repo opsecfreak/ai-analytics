@@ -1,60 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { generateToken } from "@/lib/jwt";
-
-const prisma = new PrismaClient();
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
+  const { email } = await req.json();
+
+  if (!email) {
+    return NextResponse.json({ error: 'Email required' }, { status: 400 });
+  }
+
   try {
-    const { email } = await req.json();
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
-    }
-
-    // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    // Create user if not exists
+    const user = await prisma.user.upsert({
       where: { email },
+      update: {},
+      create: { email },
     });
 
-    if (existingUser) {
-      return NextResponse.json({ error: "User with this email already exists" }, { status: 409 });
-    }
-
-    // Create user
-    const user = await prisma.user.create({
-      data: { email },
-    });
-
-    // Generate JWT token and store in UserToken table
-    const token = generateToken({ userId: user.id });
-
-    await prisma.userToken.create({
-      data: {
-        token,
-        userId: user.id,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    return NextResponse.json({ user, token }, { status: 201 });
+    return NextResponse.json(user);
   } catch (error) {
-    console.error("User creation error:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }
 
-
-// GET method to fetch all users and their emails
 export async function GET() {
   try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-      },
-    });
+    const users = await prisma.user.findMany();
     return NextResponse.json(users);
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
+  }
+}
+export async function DELETE(req: NextRequest) {
+  const { email } = await req.json();
+
+  if (!email) {
+    return NextResponse.json({ error: 'Email required' }, { status: 400 });
+  }
+
+  try {
+    const user = await prisma.user.delete({
+      where: { email },
+    });
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }
